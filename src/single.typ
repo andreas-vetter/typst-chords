@@ -52,21 +52,31 @@
     assert(has-number(position.at("text")) == true, message: "the \"position\" must to be a \"content\" with only numbers")
 
     let pos = int(position.at("text")) - 1
-    let min-pos = 0
-    let max-pos = body-array.len() - 1
-    pos = calc.clamp(pos, min-pos, max-pos)
+    if(pos >= 0) {
+      let min-pos = 0
+      let max-pos = body-array.len() - 1
+      pos = calc.clamp(pos, min-pos, max-pos)
 
-    let body-chars-offset = measure([#body-array.slice(0, pos).join()]).width
+      let body-chars-offset = measure([#body-array.slice(0, pos).join()]).width
 
-    // gets the char-offset to center the first character of
-    // the chord with the selected character of the body
-    let chord-char = parse-content(name).at(0)
-    let chord-char-width = measure(text(..text-params)[#chord-char]).width
-    let body-char-width = measure([#body-array.at(pos)]).width
-    let char-offset = (chord-char-width - body-char-width) / 2
+      // gets the char-offset to center the first character of
+      // the chord with the selected character of the body
+      let chord-char = parse-content(name).at(0)
+      let chord-char-width = measure(text(..text-params)[#chord-char]).width
+      let body-char-width = measure([#body-array.at(pos)]).width
+      let char-offset = (chord-char-width - body-char-width) / 2
 
-    // final horizontal offset
-    horizontal-offset = body-chars-offset - char-offset
+      // final horizontal offset
+      horizontal-offset = body-chars-offset - char-offset
+    } else {
+      let preshift = measure(text(..text-params)[x]).width
+      horizontal-offset = -preshift
+      // size.body.width = size.body.width + preshift
+      // TODO: Above doesn't work as intended yet.
+      // Goal: For chords with position 0, the body is shifted,
+      // so that the chord starts, where it would have started at
+      // position 1.
+    }
     anchor = left
   }
 
@@ -88,6 +98,7 @@
   }
 
   box(
+    fill: rgb(0, 100, 0, 100),
     width: size.canvas.width,
     height: size.canvas.height, {
       place(
@@ -95,7 +106,8 @@
         dx: size.canvas.dx,
         dy: size.canvas.dy,
         box(
-          fill: background,
+          //fill: background,
+          fill: rgb(100, 0, 0, 100),
           outset: (x: 2pt * scale, y: 3pt * scale),
           radius: 2pt * scale,
           text(..text-params)[#name]
@@ -103,7 +115,7 @@
       )
       place(
         anchor + bottom,
-        box(..size.body, body)
+        box(..size.body, body, fill: rgb(0, 0, 100, 100))
       )
     }
   )
