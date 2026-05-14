@@ -40,6 +40,7 @@
   }
 
   let horizontal-offset = 0pt
+  let horizontal-preshift = 0pt
   let vertical-offset = 0.8em + offset
   let anchor = center
 
@@ -69,13 +70,7 @@
       // final horizontal offset
       horizontal-offset = body-chars-offset - char-offset
     } else {
-      let preshift = measure(text(..text-params)[x]).width
-      horizontal-offset = -preshift
-      // size.body.width = size.body.width + preshift
-      // TODO: Above doesn't work as intended yet.
-      // Goal: For chords with position 0, the body is shifted,
-      // so that the chord starts, where it would have started at
-      // position 1.
+      horizontal-preshift = size.name.width
     }
     anchor = left
   }
@@ -90,7 +85,7 @@
   size.canvas.width = {
     if horizontal-offset > 0pt and size.name.width + horizontal-offset >= size.body.width {
       size.name.width + horizontal-offset
-    } else if horizontal-offset <= 0pt and size.name.width >= size.body.width {
+    } else if horizontal-offset <= 0pt and size.name.width >= size.body.width + horizontal-preshift {
       size.name.width
     } else {
       size.body.width
@@ -99,7 +94,7 @@
 
   box(
     fill: rgb(0, 100, 0, 100),
-    width: size.canvas.width,
+    width: size.canvas.width+horizontal-preshift,
     height: size.canvas.height, {
       place(
         anchor + bottom,
@@ -115,6 +110,7 @@
       )
       place(
         anchor + bottom,
+        dx: horizontal-preshift,
         box(..size.body, body, fill: rgb(0, 0, 100, 100))
       )
     }
