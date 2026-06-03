@@ -47,8 +47,21 @@
 }
 
 /// Processes a pair of annotated lyric- and chord-words into a line of content
-#let process-line-pair(pair, merge-words) = {
+#let process-line-pair(
+  /// Embeds the native *text* parameters from the standard library of *typst*. *Optional*.
+  /// -> auto
+  ..text-params,
+
+  /// The pair of lines to process. *Mandatory*.
+  /// -> dictionary (Keys: "chords" and "lyrics"; Values: the corresponding lines;)
+  pair,
+
+  /// Should two words be merged, if a chord reaches from the first over the second? *Mandatory*
+  /// -> bool
+  merge-words
+  ) = {
   assert.eq(type(merge-words), bool)
+  let chord = single-chord.with(..text-params)
   let line = []
   let chords = pair.chords
   let lyrics = pair.lyrics
@@ -96,10 +109,10 @@
           }
         }
         if merge-required {
-          line = [#line; #single-chord[#lyric-word.text; #lyric-words.at(lyric-index+1).text][#chord-word.text][#chord-pos]]
+          line = [#line; #chord[#lyric-word.text; #lyric-words.at(lyric-index+1).text][#chord-word.text][#chord-pos]]
           lyric-index += 1
         } else {
-          line = [#line; #single-chord[#lyric-word.text][#chord-word.text][#chord-pos]]
+          line = [#line; #chord[#lyric-word.text][#chord-word.text][#chord-pos]]
         }
         chord-index += 1
       } else {
@@ -115,7 +128,7 @@
   // If there are any chords after the last lyric-word, this will display them:
   while chord-index < chord-words.len() {
     let chord-word = chord-words.at(chord-index)
-    line = [#line; #single-chord[~][#chord-word.text][]]
+    line = [#line;~~#chord[~][#chord-word.text][]]
     chord-index += 1
   }
   line
@@ -129,12 +142,19 @@
   ..text-params,
 
   /// Sets the inner gap between the bottom word and the chord name. *Optional*.
-  /// -> length
+  /// -> bool
   preserve-linebreaks: true,
 
+  /// Should two words be merged, if a chord reaches from the first over the second? *Mandatory*
+  /// -> bool
+  merge-words: true,
+
+  /// Debug output?
+  /// -> bool
+  debug: false,
 
   /// The stanza. Lines of chords and lines of text alternating. *Required*.
-  /// -> content
+  /// -> str
   content
 
   /// Annotates a plaintext stanza using the single-chord function.
@@ -166,29 +186,30 @@
     chords-lines.push(parse-line(line-pair.chords)) // for debugging only
     lyrics-lines.push(parse-line(line-pair.lyrics)) // for debugging only
       if preserve-linebreaks {
-        stanza = [#stanza;#linebreak();#process-line-pair(line-pair, true);]
+        stanza = [#stanza;#linebreak();#process-line-pair(..text-params, line-pair, merge-words);]
       } else {
-        stanza = [#stanza; #process-line-pair(line-pair, true);]
+        stanza = [#stanza;~#process-line-pair(..text-params, line-pair, merge-words);]
       }
   }
+  
+  if debug {
+    [
+      === Input
+      #text()[#set par(leading: 0.3em);#raw(content)]
 
-  [
-    === input
-    #text()[#set par(leading: 0.3em);#raw(content)]
+      === Line-Pairs
+      #text()[#set par(leading: 0.3em);#line-pairs]
+      
+      === Word-Lists
+      ==== Chords
+      #text()[#set par(leading: 0.3em);#chords-lines]
+      ==== Lyrics
+      #text()[#set par(leading: 0.3em);#lyrics-lines]
 
-    === line-pairs
-    #text()[#set par(leading: 0.3em);#line-pairs]
-    
-    === word-lists
-    ==== chords
-    #text()[#set par(leading: 0.3em);#chords-lines]
-    ==== lyrics
-    #text()[#set par(leading: 0.3em);#lyrics-lines]
-
-    === stanza
-    #stanza
-
-    === input
-    #text()[#set par(leading: 0.3em);#raw(content)]
-  ]
+      === Output
+      #stanza
+    ]
+  } else {
+    stanza
+  }
 }
