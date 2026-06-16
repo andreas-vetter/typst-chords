@@ -54,83 +54,88 @@
 
   /// The pair of lines to process. *Mandatory*.
   /// -> dictionary (Keys: "chords" and "lyrics"; Values: the corresponding lines;)
-  pair,
-
-  /// Should two words be merged, if a chord reaches from the first over the second? *Mandatory*
-  /// -> bool
-  merge-words
-  ) = {
-  assert.eq(type(merge-words), bool)
+  pair
+) = {
   let chord = single-chord.with(..text-params)
   let line = []
-  let chords = pair.chords
-  let lyrics = pair.lyrics
-  let chord-words = parse-line(chords)
-  let lyric-words = parse-line(lyrics)
+  let chord-words = parse-line(pair.chords)
+  let lyric-words = parse-line(pair.lyrics)
   let chord-index = 0
   let lyric-index = 0
+  let split-word = false // We'll need to know if words were split, so we can omit the space!
   while lyric-index < lyric-words.len() {
+    // lyric-words.len() will change between iterations, if merging or splitting happens!
     let lyric-word = lyric-words.at(lyric-index)
-    if chord-index < chord-words.len() {
+    if chord-index < chord-words.len() and chord-words.at(chord-index).index <= lyric-word.index+lyric-word.text.len() {
+      // Detailed processing only, if there are more chords AND the next chord starts above this lyric!
       let chord-word = chord-words.at(chord-index)
-      let chord-word-index = chord-word.index
-      let chord-word-length = chord-word.length
-      let lyric-word-index = lyric-word.index
-      let lyric-word-length = lyric-word.length
-      if lyric-word-index - 1 <= chord-word-index and chord-word-index <= lyric-word-index+lyric-word-length - 1 {
-        // Match! --> Insert lyric with chord; increment chord index;
-        let chord-pos = [#str(chord-word-index - lyric-word-index + 1)]
-        // The weird casting of chord-pos should not be necessary. That's an issue with single-chord.
-        let merge-required = false
-        let merge-possible = false
-        if merge-words and (lyric-index + 1) < lyric-words.len() {
-          // merging is selected, and a word to merge is available
-          let next-lyric-index = lyric-words.at(lyric-index+1).index
-          if (chord-index + 1) < chord-words.len() {
-            // There is another chord, that could potentially match the next word.
-            let next-lyric-length = lyric-words.at(lyric-index+1).length
-            let next-chord-index = chord-words.at(chord-index+1).index
-            if next-lyric-index - 1 <= next-chord-index and next-chord-index <= next-lyric-index + next-lyric-length - 1 {
-              // The other chord matches the next word, so we can't merge!
-              merge-possible = false
-            } else {
-              merge-possible = true
-            }
-          } else {
-            // There is no other chord that could match the next word.
-            merge-possible = true
-          }
-          if merge-possible {
-            // merging is possible, but is it necessary?
-            // Necessary, if the end of the current chord goes beyond the start of the next word!
-            if chord-word-index + chord-word-length - 1 >= next-lyric-index {
-              merge-required = true
-            }
-          }
+      
+      // ========== Merge Words================================================
+      // Do we merge? Checklist:
+      //   [ ] another lyric-word is available 
+      //   [ ] the current chord-word reaches over the next lyric-word 
+      //   [ ] no chord at start of next lyric-word
+      //  The last is always true, due to the input format!
+      //  User selection isn't needed, if they don't want merging,
+      //  they can input without overhang!
+      if (lyric-index+1) < lyric-words.len() {
+        let end-of-chord-word = chord-word.index + chord-word.text.len()
+        let start-of-next-word = lyric-words.at(lyric-index+1).index
+        if end-of-chord-word >= start-of-next-word {
+          lyric-word.text = lyric-word.text + " " + lyric-words.at(lyric-index+1).text
+          let removed = lyric-words.remove(lyric-index+1)
+          // This is a horrible trap: removed isn't used for anything. But if the
+          // return value of remove() isn't stored away, it will move upwards,
+          // and at the end the method will unsuccessfully try to join it (a dictionary)
+          // and the actual return value (line, of type content)-
         }
-        if merge-required {
-          line = [#line; #chord[#lyric-word.text; #lyric-words.at(lyric-index+1).text][#chord-word.text][#chord-pos]]
-          lyric-index += 1
-        } else {
-          line = [#line; #chord[#lyric-word.text][#chord-word.text][#chord-pos]]
-        }
-        chord-index += 1
-      } else {
-        // No match! --> Insert lyric without chord;
-        line = [#line; #lyric-word.text]
       }
+      
+      // ========== Split Words================================================
+      // We will split, if:
+      // - another chord-word is available
+      // - the next-chord-word starts before the end of the current lyric-word
+      if chord-words.len() > (chord-index+1) {
+        let end-of-this-word = lyric-word.index + lyric-word.text.len()
+        let start-of-next-chord = chord-words.at(chord-index+1).index
+        if start-of-next-chord <= end-of-this-word {
+          split-word = true
+          let new-index = start-of-next-chord
+          let slice-index = start-of-next-chord - lyric-word.index
+          let new-text = lyric-word.text.slice(slice-index)
+          let new-lyric-word = (
+            "index" : new-index,
+            "text" : new-text
+          )
+          lyric-word.text = lyric-word.text.slice(0, slice-index)
+          lyric-words.insert(lyric-index+1, new-lyric-word)
+        }
+      }
+
+      // ========== Process Word ==============================================
+      let chord-pos = [#str(chord-word.index - lyric-word.index + 1)]
+      // The weird casting of chord-pos should not be necessary. That's an issue with single-chord.
+      line = [#line;#chord[#lyric-word.text][#chord-word.text][#chord-pos]]
+      chord-index += 1 // One chord was used, increase index.
     } else {
       // No more chords, still need to print the rest of the words...
-      line = [#line; #lyric-word.text]
+      line = [#line;#lyric-word.text]
     }
-    lyric-index += 1
+    if not split-word {
+        line = [#line ] 
+    }
+    split-word = false
+    lyric-index += 1 // One lyric was used, increase index.
   }
+
   // If there are any chords after the last lyric-word, this will display them:
   while chord-index < chord-words.len() {
     let chord-word = chord-words.at(chord-index)
     line = [#line;~~#chord[~][#chord-word.text][]]
     chord-index += 1
   }
+
+  // Return
   line
 }
 
@@ -185,11 +190,12 @@
   for line-pair in line-pairs {
     chords-lines.push(parse-line(line-pair.chords)) // for debugging only
     lyrics-lines.push(parse-line(line-pair.lyrics)) // for debugging only
-      if preserve-linebreaks {
-        stanza = [#stanza;#linebreak();#process-line-pair(..text-params, line-pair, merge-words);]
-      } else {
-        stanza = [#stanza;~#process-line-pair(..text-params, line-pair, merge-words);]
-      }
+    let current-line = process-line-pair(..text-params, line-pair)
+    if preserve-linebreaks {
+      stanza = [#stanza;#linebreak();#current-line;]
+    } else {
+      stanza = [#stanza;~#current-line;]
+    }
   }
   
   if debug {
