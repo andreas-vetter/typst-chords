@@ -308,6 +308,6 @@ The `chorded-stanza` function can handle a few special scenarios.
   ]
   stanza("
   A     D   G      C
-  Desoxyribonukleinsäure
+  Däsöxyribönükläinsäure
   ")
 }

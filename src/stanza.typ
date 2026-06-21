@@ -1,6 +1,16 @@
 #import "./utils.typ": parse-content, has-number, size-to-scale
 #import "./single.typ": single-chord
 
+// Lesson learned: Counting the bytes in a string, works only until
+// the first non-ASCII character appears. For example a German umlaut
+// like 'Ä' consists of two bytes and would therefore be miscounted as
+// two characters.
+// The solution to this is to only work on the grapheme clusters, which
+// can be derived from a string using the str.clusters() method. See:
+// https://typst.app/docs/reference/foundations/str/#definitions-clusters
+// And for more details about what grapheme clusters are:
+// https://doc.rust-lang.org/book/ch08-02-strings.html#bytes-scalar-values-and-grapheme-clusters
+
 // Splits a line into words, noting their index, content and length.
 // -> array((index: int, word: str, length: int))
 #let parse-line(line) = {
@@ -9,8 +19,20 @@
   let index = 0
   let in-word = false
   let word-index = -1
+  let space-matches = line.matches(" ")
+  let space-match-indices = ()
+  for space-match in space-matches {
+    space-match-indices.push(space-match.start)
+  }
   while(index < line.len()) {
-    if not line.slice(index, count: 1) == " " {
+    //if not line.slice(index, count: 1) == " " {
+    // Above will fail, if there are multi-byte characters, e.g. German umlauts.
+    // See https://doc.rust-lang.org/book/ch08-02-strings.html#bytes-scalar-values-and-grapheme-clusters
+    // and https://typst.app/docs/reference/foundations/str/
+    // But we can't just use typsts iterating grapheme-based iterator over strings, because we need
+    // the indices (not the grapheme count) to slice the string.
+    if not space-match-indices.contains(index) {
+      // Character is not a space.
       if not in-word {
         // Previously not in a word --> This index is the start of a new one.
         word-index = index
