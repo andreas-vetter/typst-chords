@@ -1,8 +1,8 @@
 #import "./utils.typ": parse-content, has-number, size-to-scale
 #import "./single.typ": single-chord
 
-/// Splits a line into words, noting their index, content and length.
-/// -> array((index: int, word: str, length: int))
+// Splits a line into words, noting their index, content and length.
+// -> array((index: int, word: str, length: int))
 #let parse-line(line) = {
   assert.eq(type(line), str)
   let words = ()
@@ -46,7 +46,7 @@
   words
 }
 
-/// Processes a pair of annotated lyric- and chord-words into a line of content
+// Processes a pair of annotated lyric- and chord-words into a line of content
 #let process-line-pair(
   /// Embeds the native *text* parameters from the standard library of *typst*. *Optional*.
   /// -> auto
@@ -71,17 +71,13 @@
       let chord-word = chord-words.at(chord-index)
       
       // ========== Merge Words================================================
-      // Do we merge? Checklist:
-      //   [ ] another lyric-word is available 
-      //   [ ] the current chord-word reaches over the next lyric-word 
-      //   [ ] no chord at start of next lyric-word
-      //  The last is always true, due to the input format!
-      //  User selection isn't needed, if they don't want merging,
-      //  they can input without overhang!
+      // We will merge, if:
+      //   - another lyric-word is available 
+      //   - the current chord-word reaches over the next lyric-word 
       if (lyric-index+1) < lyric-words.len() {
         let end-of-chord-word = chord-word.index + chord-word.text.len()
         let start-of-next-word = lyric-words.at(lyric-index+1).index
-        if end-of-chord-word >= start-of-next-word {
+        if end-of-chord-word > start-of-next-word {
           lyric-word.text = lyric-word.text + " " + lyric-words.at(lyric-index+1).text
           let removed = lyric-words.remove(lyric-index+1)
           // This is a horrible trap: removed isn't used for anything. But if the
@@ -135,35 +131,26 @@
     chord-index += 1
   }
 
-  // Return
   line
 }
 
-/// The single chord a chord without diagram used to show the chord name over a word.
+/// A helper method, to simplify entering entire stanzas, without having to type a complete
+/// single-chord command for each chord.
 /// -> content
 #let chorded-stanza(
-  /// Embeds the native *text* parameters from the standard library of *typst*. *Optional*.
+  /// Embeds all the parameters of the `single-chord` function, including the native *text*
+  /// parameters from the standard library of *typst*. *Optional*.
   /// -> auto
-  ..text-params,
+  ..single-chord-params,
 
-  /// Sets the inner gap between the bottom word and the chord name. *Optional*.
+  /// If true, linebreaks of the input will be replicated in the output. If false,
+  /// the output will be without explicit linebreaks. *Optional*.
   /// -> bool
   preserve-linebreaks: true,
-
-  /// Should two words be merged, if a chord reaches from the first over the second? *Mandatory*
-  /// -> bool
-  merge-words: true,
-
-  /// Debug output?
-  /// -> bool
-  debug: false,
 
   /// The stanza. Lines of chords and lines of text alternating. *Required*.
   /// -> str
   content
-
-  /// Annotates a plaintext stanza using the single-chord function.
-  /// -> content
 ) = context {
   assert.eq(type(preserve-linebreaks), bool)
   assert.eq(type(content), str)
@@ -184,38 +171,15 @@
     }
   }
 
-  let chords-lines = () // for debugging only
-  let lyrics-lines = () // for debugging only
   let stanza = []
   for line-pair in line-pairs {
-    chords-lines.push(parse-line(line-pair.chords)) // for debugging only
-    lyrics-lines.push(parse-line(line-pair.lyrics)) // for debugging only
-    let current-line = process-line-pair(..text-params, line-pair)
+    let current-line = process-line-pair(..single-chord-params, line-pair)
     if preserve-linebreaks {
       stanza = [#stanza;#linebreak();#current-line;]
     } else {
       stanza = [#stanza;~#current-line;]
     }
   }
-  
-  if debug {
-    [
-      === Input
-      #text()[#set par(leading: 0.3em);#raw(content)]
 
-      === Line-Pairs
-      #text()[#set par(leading: 0.3em);#line-pairs]
-      
-      === Word-Lists
-      ==== Chords
-      #text()[#set par(leading: 0.3em);#chords-lines]
-      ==== Lyrics
-      #text()[#set par(leading: 0.3em);#lyrics-lines]
-
-      === Output
-      #stanza
-    ]
-  } else {
-    stanza
-  }
+  stanza
 }
