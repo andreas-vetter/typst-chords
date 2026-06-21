@@ -223,18 +223,28 @@ the text with the cords in the line above. The `chorded-stanza`
 function will automatically convert it into corresponding
 calls to the `single-chord` function.
 
-*Note*: Automatically centering a chord on a word (as done in
-`single-chord` by leaving the position empty) is not possible
-this way, because the first character of the chord name is always 
-exactly above one character of a lyric word.
-
 *Note*: The input has to be a pure String (hence the parantheses
 and quotation marks instead of square brackets) and consist of an
 even number of lines, where the odd numbered lines contain the
 chords and the even numbered lines the lyrics.
 
+*Note*: The input string may be any valid UTF-8 string. Multi-byte
+characters are counted correctly.
+
+*Note*: Automatically centering a chord on a word (as done in
+`single-chord` by leaving the position empty) is not possible
+this way, because the first character of the chord name is always 
+exactly above one character of a lyric word.
+
+=== Custom chord typesetting
+*TODO*
+
 === Special scenarios
 The `chorded-stanza` function can handle a few special scenarios.
+While this section is mostly about the internal working of the
+`chorded-stanza` function, it might be of relevance when you're
+applying more complex design features (e.g. automatically placing
+a frame around each individual word).
 #{
   import "../src/single.typ": single-chord
   import "../src/stanza.typ": chorded-stanza
@@ -307,7 +317,7 @@ The `chorded-stanza` function can handle a few special scenarios.
     and rendered like:#linebreak()
   ]
   stanza("
-  A     D   G      C
-  Däsöxyribönükläinsäure
+    A     D   G      C
+    Desoxyribonukleinsäure
   ")
 }

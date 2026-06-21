@@ -15,62 +15,52 @@
 // -> array((index: int, word: str, length: int))
 #let parse-line(line) = {
   assert.eq(type(line), str)
+  let graphemes = line.clusters()
   let words = ()
   let index = 0
-  let in-word = false
+  let current-word = ""
   let word-index = -1
-  let space-matches = line.matches(" ")
-  let space-match-indices = ()
-  for space-match in space-matches {
-    space-match-indices.push(space-match.start)
-  }
-  while(index < line.len()) {
+  while(index < graphemes.len()) {
     //if not line.slice(index, count: 1) == " " {
     // Above will fail, if there are multi-byte characters, e.g. German umlauts.
     // See https://doc.rust-lang.org/book/ch08-02-strings.html#bytes-scalar-values-and-grapheme-clusters
     // and https://typst.app/docs/reference/foundations/str/
     // But we can't just use typsts iterating grapheme-based iterator over strings, because we need
     // the indices (not the grapheme count) to slice the string.
-    if not space-match-indices.contains(index) {
-      // Character is not a space.
-      if not in-word {
-        // Previously not in a word --> This index is the start of a new one.
+    if not graphemes.at(index) == " " {
+      if current-word == "" {
+        // Previously not in a word and now a non-space --> This index is the start of a new word.
         word-index = index
       }
-      in-word = true
+      current-word = current-word + graphemes.at(index)
     } else {
-      if in-word {
-        // Previously in a word --> This is the index behind a word.
-        let word-length = index - word-index
-        // -1 because the current index is on the space after the word.
+      if current-word.len() > 0 {
+        // Now a space and previously in a word --> This is the index behind a word.
         let word = (
           "index" : word-index,
-          "text" : line.slice(word-index, count: word-length),
-          "length" : word-length
+          "text" : current-word
         )
         words.push(word)
       }
-      in-word = false
+      current-word = ""
     }
     index += 1
   }
-  if in-word {
+  if current-word.len() > 0 {
     // The line ended on a word.
-    let word-length = line.len() - word-index
     let word = (
       "index" : word-index,
-      "text" : line.slice(word-index, count: word-length),
-      "length" : word-length
+      "text" : current-word
     )
     words.push(word)
   }
-
   words
 }
 
 // Processes a pair of annotated lyric- and chord-words into a line of content
 #let process-line-pair(
-  /// Embeds the native *text* parameters from the standard library of *typst*. *Optional*.
+  /// Embeds all the parameters of the `single-chord` function, including the native *text*
+  /// parameters from the standard library of *typst*. *Optional*.
   /// -> auto
   ..text-params,
 
@@ -88,7 +78,7 @@
   while lyric-index < lyric-words.len() {
     // lyric-words.len() will change between iterations, if merging or splitting happens!
     let lyric-word = lyric-words.at(lyric-index)
-    if chord-index < chord-words.len() and chord-words.at(chord-index).index <= lyric-word.index+lyric-word.text.len() {
+    if chord-index < chord-words.len() and chord-words.at(chord-index).index <= lyric-word.index+lyric-word.text.clusters().len() {
       // Detailed processing only, if there are more chords AND the next chord starts above this lyric!
       let chord-word = chord-words.at(chord-index)
       
@@ -97,7 +87,7 @@
       //   - another lyric-word is available 
       //   - the current chord-word reaches over the next lyric-word 
       if (lyric-index+1) < lyric-words.len() {
-        let end-of-chord-word = chord-word.index + chord-word.text.len()
+        let end-of-chord-word = chord-word.index + chord-word.text.clusters().len()
         let start-of-next-word = lyric-words.at(lyric-index+1).index
         if end-of-chord-word > start-of-next-word {
           lyric-word.text = lyric-word.text + " " + lyric-words.at(lyric-index+1).text
@@ -114,18 +104,28 @@
       // - another chord-word is available
       // - the next-chord-word starts before the end of the current lyric-word
       if chord-words.len() > (chord-index+1) {
-        let end-of-this-word = lyric-word.index + lyric-word.text.len()
+        let end-of-this-word = lyric-word.index + lyric-word.text.clusters().len()
         let start-of-next-chord = chord-words.at(chord-index+1).index
         if start-of-next-chord <= end-of-this-word {
           split-word = true
           let new-index = start-of-next-chord
           let slice-index = start-of-next-chord - lyric-word.index
-          let new-text = lyric-word.text.slice(slice-index)
+          let old-text = ""
+          let new-text = ""
+          let cluster-index = 0
+          for cluster in lyric-word.text.clusters() {
+            if cluster-index < slice-index {
+              old-text = old-text + cluster
+            } else {
+              new-text = new-text + cluster
+            }
+            cluster-index = cluster-index + 1
+          }
           let new-lyric-word = (
             "index" : new-index,
             "text" : new-text
           )
-          lyric-word.text = lyric-word.text.slice(0, slice-index)
+          lyric-word.text = old-text
           lyric-words.insert(lyric-index+1, new-lyric-word)
         }
       }
@@ -182,6 +182,7 @@
   let line-pairs = ()
   let line-pair = (:)
   let chords = true // First line is chords, from there on alternating.
+  
   for line in lines.slice(1) {
     if chords {
       chords = false
