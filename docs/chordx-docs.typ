@@ -237,7 +237,64 @@ this way, because the first character of the chord name is always
 exactly above one character of a lyric word.
 
 === Custom chord typesetting
-*TODO*
+If you want to print chord names with special typesets, e.g. 'C#sym.flat;5', that can't
+be input directly, you can provide a mapping between the input string
+and the desired out output string.
+
+```typ-lang
+#import "@preview/chordx:0.7.0": chorded-stanza
+
+#let stanza = chorded-stanza.with(
+  font: "PT Sans",
+  size: 10pt,
+  weight: "semibold",
+  background: silver,
+  preserve-linebreaks: false,
+  custom-typesets: (
+    "D9": [D#super[9]],
+    "C+": [C#super[+]],
+    "G#": [G#symbol.sharp]
+    )
+)
+
+#stanza("
+D9    C+          G#
+Lorem ipsum dolor sit amet,
+F9         E+         A#
+consetetur sadipscing elitr...
+")
+```
+
+#{
+  import "../src/stanza.typ": chorded-stanza
+
+ let stanza = chorded-stanza.with(
+  font: "PT Sans",
+  size: 10pt,
+  weight: "semibold",
+  background: silver,
+  preserve-linebreaks: false,
+  custom-typesets: (
+    "D9": [D#super[9]],
+    "C+": [C#super[+]],
+    "G#": [G#sym.sharp]
+    )
+)
+
+stanza("
+D9    C+          G#
+Lorem ipsum dolor sit amet,
+F9         E+         A#
+consetetur sadipscing elitr...
+")
+}
+#linebreak()
+
+*Note*: The difference in the rendering between the first and the
+second sets of chords is the usage of custom typeset mappings.
+
+*Note*: In this example, `presever-linebreaks` has been disabled,
+so that the two input lines are rendered as one output line.
 
 === Special scenarios
 The `chorded-stanza` function can handle a few special scenarios.
@@ -317,7 +374,7 @@ a frame around each individual word).
     and rendered like:#linebreak()
   ]
   stanza("
-    A     D   G      C
+    A     D   G      C9
     Desoxyribonukleinsäure
   ")
 }

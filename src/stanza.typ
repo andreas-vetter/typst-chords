@@ -64,10 +64,15 @@
   /// -> auto
   ..text-params,
 
+  /// Dictionary with custom typesets for chords.
+  /// -> dictionary (Key: `str` with chord name (as in the input); Value: `content`)
+  custom-typesets,
+
   /// The pair of lines to process. *Mandatory*.
   /// -> dictionary (Keys: "chords" and "lyrics"; Values: the corresponding lines;)
-  pair
+  pair,
 ) = {
+  assert.eq(type(custom-typesets), dictionary)
   let chord = single-chord.with(..text-params)
   let line = []
   let chord-words = parse-line(pair.chords)
@@ -133,7 +138,7 @@
       // ========== Process Word ==============================================
       let chord-pos = [#str(chord-word.index - lyric-word.index + 1)]
       // The weird casting of chord-pos should not be necessary. That's an issue with single-chord.
-      line = [#line;#chord[#lyric-word.text][#chord-word.text][#chord-pos]]
+      line = [#line;#chord[#lyric-word.text][#custom-typesets.at(chord-word.text, default: [#chord-word.text])][#chord-pos]]
       chord-index += 1 // One chord was used, increase index.
     } else {
       // No more chords, still need to print the rest of the words...
@@ -149,7 +154,7 @@
   // If there are any chords after the last lyric-word, this will display them:
   while chord-index < chord-words.len() {
     let chord-word = chord-words.at(chord-index)
-    line = [#line;~~#chord[~][#chord-word.text][]]
+    line = [#line;~~#chord[~][#custom-typesets.at(chord-word.text, default: [#chord-word.text])][]]
     chord-index += 1
   }
 
@@ -170,11 +175,16 @@
   /// -> bool
   preserve-linebreaks: true,
 
+  /// Dictionary with custom typesets for chords.
+  /// -> dictionary (Key: `str` with chord name (as in the input); Value: `content`)
+  custom-typesets: (:),
+
   /// The stanza. Lines of chords and lines of text alternating. *Required*.
   /// -> str
   content
 ) = context {
   assert.eq(type(preserve-linebreaks), bool)
+  assert.eq(type(custom-typesets), dictionary)
   assert.eq(type(content), str)
 
   // Split the input in pairs of one line with chords and one line with lyrics:
@@ -196,7 +206,7 @@
 
   let stanza = []
   for line-pair in line-pairs {
-    let current-line = process-line-pair(..single-chord-params, line-pair)
+    let current-line = process-line-pair(..single-chord-params, custom-typesets, line-pair)
     if preserve-linebreaks {
       stanza = [#stanza;#linebreak();#current-line;]
     } else {
