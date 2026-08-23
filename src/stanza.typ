@@ -171,11 +171,13 @@
   ..single-chord-params,
 
   /// If true, linebreaks of the input will be replicated in the output. If false,
-  /// the output will be without explicit linebreaks. *Optional*.
+  /// the output will be without explicit linebreaks.
+  /// The default value is true, because in many lyrics use cases a line represents
+  /// a verse. *Optional*.
   /// -> bool
   preserve-linebreaks: true,
 
-  /// Dictionary with custom typesets for chords.
+  /// Dictionary with custom typesets for chords. *Optional*.
   /// -> dictionary (Key: `str` with chord name (as in the input); Value: `content`)
   custom-typesets: (:),
 
