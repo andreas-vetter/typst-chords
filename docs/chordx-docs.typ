@@ -419,7 +419,7 @@ In a #chord[one-horse][A7][2] open #chord[sleigh,][D7][3] hey!
   tidy.show-module(module, sort-functions: none)
 }
 
-=== Example
+==== Example
 Consider above example on printing "Jingle Bells" with chords (#ref(<single-chord-example>)).
 `stanza-chord` provides a more comfortable way of entering the song:
 
@@ -471,20 +471,12 @@ the text with the cords in the line above. The `stanza-chord`
 function will automatically convert it into corresponding
 calls to the `single-chord` function.
 
-*Note*: The input has to be a pure String (hence the parantheses
-and quotation marks instead of square brackets) and consist of an
-even number of lines, where the odd numbered lines contain the
-chords and the even numbered lines the lyrics.
+*Note*
+- The input has to be a pure String (hence the parantheses and quotation marks instead of square brackets) and consist of an even number of lines, where the odd numbered lines contain the chords and the even numbered lines the lyrics.
+- The input string may be any valid UTF-8 string. Multi-byte characters are counted correctly.
+- Automatically centering a chord on a word (as done in `single-chord` by leaving the position empty) is not possible this way, because the first character of the chord name is always exactly above one character of a lyric word.
 
-*Note*: The input string may be any valid UTF-8 string. Multi-byte
-characters are counted correctly.
-
-*Note*: Automatically centering a chord on a word (as done in
-`single-chord` by leaving the position empty) is not possible
-this way, because the first character of the chord name is always 
-exactly above one character of a lyric word.
-
-=== Custom chord typesetting
+==== Custom chord typesetting
 If you want to print chord names with special typesets, e.g. 'C#sym.flat;5', that can't
 be input directly, you can provide a mapping between the input string
 and the desired out output string.
@@ -538,15 +530,12 @@ consetetur sadipscing elitr...
 }
 #linebreak()
 
-*Note*: The difference in the rendering between the first and the
-second sets of chords is the usage of custom typeset mappings.
+*Note*
+- The difference in the rendering between the first and the second sets of chords is the usage of custom typeset mappings.
+- In this example, `preseve-linebreaks` has been disabled, so that the two input lines are rendered as one output line.
+- Custom typesets and automatic transposing are mutually exclusive.
 
-*Note*: In this example, `presever-linebreaks` has been disabled,
-so that the two input lines are rendered as one output line.
-
-*Note*: Custom typesets and automatic transposing are mutually exclusive.
-
-=== Special scenarios
+==== Special scenarios
 The `stanza-chord` function can handle a few special scenarios.
 While this section is mostly about the internal working of the
 `stanza-chord` function, it might be of relevance when you're
@@ -570,8 +559,8 @@ a frame around each individual word).
     preserve-linebreaks: true
   )
   [
-    ==== Merging words
-    In a situation, where the name of a chord, is longer than the
+    
+    *Merging words*: In a situation, where the name of a chord, is longer than the
     word itself (such that it hangs over the next chord), the
     two words will be merged into one. For example.:
     ```typ-lang
@@ -606,8 +595,7 @@ a frame around each individual word).
   ]
 
   [
-    ==== Splitting words
-    If you have a word that is so long that it needs multiple chords above it,
+    *Splitting words*: If you have a word that is so long that it needs multiple chords above it,
     it will be split automatically into multiple sub-words, which are passed 
     to the `single-chord` function. Let's use the German word for DNA as
     an example:
@@ -621,7 +609,7 @@ a frame around each individual word).
     ```typ-lang
     #chord[Desoxy][A][1]#chord[ribo][D][1]#chord[nuklein][G][1]#chord[säure][C][1]
     ```
-    and rendered like:#linebreak()
+    and rendered like:
   ]
   stanza("
     A     D   G      C9

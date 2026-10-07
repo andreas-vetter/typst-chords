@@ -1,4 +1,3 @@
-#import "./utils.typ": parse-content, has-number, size-to-scale
 #import "./single.typ": single-chord
 
 // Lesson learned: Counting the bytes in a string, works only until
@@ -12,7 +11,7 @@
 // https://doc.rust-lang.org/book/ch08-02-strings.html#bytes-scalar-values-and-grapheme-clusters
 
 // Splits a line into words, noting their index, content and length.
-// -> array((index: int, word: str, length: int))
+// -> array((index: int, word: str))
 #let parse-line(line) = {
   assert.eq(type(line), str)
   let graphemes = line.clusters()
@@ -58,22 +57,9 @@
 }
 
 // Processes a pair of annotated lyric- and chord-words into a line of content
-#let process-line-pair(
-  /// Embeds all the parameters of the `single-chord` function, including the native *text*
-  /// parameters from the standard library of *typst*. *Optional*.
-  /// -> auto
-  ..text-params,
-
-  /// Dictionary with custom typesets for chords.
-  /// -> dictionary (Key: `str` with chord name (as in the input); Value: `content`)
-  custom-typesets,
-
-  /// The pair of lines to process. *Mandatory*.
-  /// -> dictionary (Keys: "chords" and "lyrics"; Values: the corresponding lines;)
-  pair,
-) = {
+#let process-line-pair(..single-chord-params, custom-typesets, pair) = {
   assert.eq(type(custom-typesets), dictionary)
-  let chord = single-chord.with(..text-params)
+  let chord = single-chord.with(..single-chord-params)
   let line = []
   let chord-words = parse-line(pair.chords)
   let lyric-words = parse-line(pair.lyrics)
@@ -177,41 +163,39 @@
   /// -> bool
   preserve-linebreaks: true,
 
-  /// Dictionary with custom typesets for chords. *Optional*.
-  /// -> dictionary (Key: `str` with chord name (as in the input); Value: `content`)
+  /// Dictionary with custom typesets for chords. (Keys: `str` with chord name as in the input; Values: `content` as expected in the output.) *Optional*.
+  /// -> dictionary
   custom-typesets: (:),
 
   /// The stanza. Lines of chords and lines of text alternating. *Required*.
   /// -> str
-  content
+  stanza
 ) = context {
   assert.eq(type(preserve-linebreaks), bool)
   assert.eq(type(custom-typesets), dictionary)
-  assert.eq(type(content), str)
+  assert.eq(type(stanza), str)
 
   // Split the input in pairs of one line with chords and one line with lyrics:
-  let lines = content
+  let lines = stanza
     .split("\n")
     .filter(line => line != "");
   let line-pairs = ()
   let line-pair = (:)
-  let chords = true // First line is chords, from there on alternating.
-  
   for line in lines.chunks(2, exact: true) {
     line-pair.insert("chords", line.at(0))
     line-pair.insert("lyrics", line.at(1))
     line-pairs.push(line-pair)
   }
 
-  let stanza = []
+  let output = []
   for line-pair in line-pairs {
     let current-line = process-line-pair(..single-chord-params, custom-typesets, line-pair)
     if preserve-linebreaks {
-      stanza = [#stanza;#linebreak();#current-line;]
+      output = [#output;#linebreak();#current-line;]
     } else {
-      stanza = [#stanza;~#current-line;]
+      output = [#output;~#current-line;]
     }
   }
 
-  stanza
+  output
 }
